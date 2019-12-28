@@ -1,7 +1,7 @@
 const { readFileSync, existsSync, mkdirpSync } = require('fs-extra');
 const { relative, join, dirname, resolve } = require('path');
-const compiler = require('jsx-compiler');
 const { getOptions } = require('loader-utils');
+const compiler = require('jsx-compiler');
 const chalk = require('chalk');
 const PrettyError = require('pretty-error');
 const cached = require('./cached');
@@ -10,21 +10,21 @@ const eliminateDeadCode = require('./utils/dce');
 const processCSS = require('./styleProcessor');
 const output = require('./output');
 
-const pe = new PrettyError();
-
 const ComponentLoader = __filename;
 const ScriptLoader = require.resolve('./script-loader');
 
+const pe = new PrettyError();
+
 module.exports = async function componentLoader(content) {
   const loaderOptions = getOptions(this);
-  const { platform, entryPath, constantDir, mode, disableCopyNpm, turnOffSourceMap } = loaderOptions;
+  const { platform, entryPath, mode, disableCopyNpm, constantDir, turnOffSourceMap } = loaderOptions;
   const rawContent = readFileSync(this.resourcePath, 'utf-8');
   const resourcePath = this.resourcePath;
   const rootContext = this.rootContext;
   const absoluteConstantDir = constantDir.map(dir => join(rootContext, dir));
+
   const outputPath = this._compiler.outputPath;
   const sourcePath = join(rootContext, dirname(entryPath));
-
   const relativeSourcePath = relative(sourcePath, this.resourcePath);
   const distFileWithoutExt = removeExt(join(outputPath, relativeSourcePath));
 
@@ -62,6 +62,7 @@ module.exports = async function componentLoader(content) {
       this.addDependency(dep);
     });
   }
+
   if (config.usingComponents) {
     const usingComponents = {};
     Object.keys(config.usingComponents).forEach(key => {
@@ -70,7 +71,6 @@ module.exports = async function componentLoader(content) {
       if (/^c-/.test(key)) {
         let result = './' + relative(dirname(this.resourcePath), value); // ./components/Repo.jsx
         result = removeExt(result); // ./components/Repo
-
         usingComponents[key] = result;
       } else {
         usingComponents[key] = value;
@@ -78,9 +78,6 @@ module.exports = async function componentLoader(content) {
     });
     config.usingComponents = usingComponents;
   }
-
-  const distFileDir = dirname(distFileWithoutExt);
-  if (!existsSync(distFileDir)) mkdirpSync(distFileDir);
 
   const outputContent = {
     code: transformed.code,
@@ -108,7 +105,6 @@ module.exports = async function componentLoader(content) {
     for (let key in usingComponents) {
       if (
         usingComponents.hasOwnProperty(key)
-        && usingComponents[key]
         && usingComponents[key].indexOf(matchingPath) === 0
       ) {
         return true;
@@ -123,7 +119,7 @@ module.exports = async function componentLoader(content) {
       const componentPath = resolve(dirname(resourcePath), name);
       dependencies.push({
         name,
-        loader: isFromConstantDir(componentPath) ? ScriptLoader : ComponentLoader, // Native miniapp component js file will loaded by script-loader
+        loader: isFromConstantDir(componentPath) ? ScriptLoader : ComponentLoader, // Native miniapp component js file will be loaded by script-loader
         options: loaderOptions
       });
     } else {
