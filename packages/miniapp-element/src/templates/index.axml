@@ -39,6 +39,7 @@
     hover-stop-propagation="{{hoverStopPropagation}}"
     hover-start-time="{{hoverStayTime}}"
     hover-stay-time="{{hoverStayTime}}"
+    onTap="{{onTap}}"
 ><template is="subtree" data="{{childNodes: childNodes, inCover}}"/></view>
 <picker-view
     a:elif="{{builtinComponentName === 'picker-view'}}"
