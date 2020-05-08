@@ -1,6 +1,5 @@
 import { propsMap, componentNameMap } from '../component';
 import {
-  NOT_SUPPORT,
   NEET_SPLIT_CLASS_STYLE_FROM_CUSTOM_ELEMENT,
   NEET_BEHAVIOR_NORMAL_CUSTOM_ELEMENT,
   NEET_RENDER_TO_CUSTOM_ELEMENT,
@@ -14,8 +13,6 @@ export default function filterNodes(domNode, level, component) {
   const childNodes = domNode.childNodes || [];
 
   if (!childNodes.map) return [];
-  // Tags are not supported and child nodes are not rendered
-  if (NOT_SUPPORT.indexOf(domNode.tagName) >= 0) return [];
 
   return childNodes
     .map((child) => {
@@ -26,7 +23,7 @@ export default function filterNodes(domNode, level, component) {
       // Add default class
       domInfo.className =
         domInfo.type === 'element'
-          ? `h5-${domInfo.tagName} node-${domInfo.nodeId} ${
+          ? `node-${domInfo.nodeId} ${
             domInfo.className || ''
           }`
           : '';
@@ -69,22 +66,6 @@ export default function filterNodes(domNode, level, component) {
         domInfo.style = '';
       }
 
-      // Check image node
-      domInfo.isImage = domInfo.type === 'element' && domInfo.tagName === 'img';
-      if (domInfo.isImage) {
-        domInfo.src = child.src || '';
-        domInfo.mode = child.getAttribute('mode') || '';
-        domInfo.lazyLoad = !!child.getAttribute('lazy-load');
-        domInfo.showMenuByLongpress = !!child.getAttribute(
-          'show-menu-by-longpress'
-        );
-      } else {
-        domInfo.src = '';
-        domInfo.mode = '';
-        domInfo.lazyLoad = false;
-        domInfo.showMenuByLongpress = false;
-      }
-
       // Check wheather use template
       const templateName =
         domInfo.tagName === 'builtin-component'
@@ -100,7 +81,7 @@ export default function filterNodes(domNode, level, component) {
             domInfo,
             compName,
             extra,
-            `h5-${domInfo.tagName} ${
+            `${
               domInfo.tagName === 'builtin-component'
                 ? 'builtin-' + child.behavior
                 : ''

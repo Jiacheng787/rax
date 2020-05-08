@@ -86,10 +86,6 @@ class Window extends EventTarget {
     return this;
   }
 
-  get Image() {
-    return this.document.$$imageConstructor;
-  }
-
   get setTimeout() {
     return setTimeout.bind(null);
   }

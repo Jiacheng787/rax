@@ -28,7 +28,6 @@ export const NEET_BEHAVIOR_NORMAL_CUSTOM_ELEMENT_PARENT = [
   'swiper',
   'movable-area',
 ];
-export const NOT_SUPPORT = ['IFRAME', 'A'];
 // The nodes that class and style need to be separated
 export const NEET_SPLIT_CLASS_STYLE_FROM_CUSTOM_ELEMENT = [
   'BUILTIN-COMPONENT',
@@ -71,7 +70,6 @@ export const USE_TEMPLATE = [
 ];
 // The nodes that must be render as custom components
 export const NEET_RENDER_TO_CUSTOM_ELEMENT = [
-  ...NOT_SUPPORT,
   ...NEET_SPLIT_CLASS_STYLE_FROM_CUSTOM_ELEMENT,
 ];
 

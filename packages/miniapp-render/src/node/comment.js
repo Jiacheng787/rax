@@ -52,12 +52,6 @@ class Comment extends Node {
   get nodeType() {
     return Node.COMMENT_NODE;
   }
-
-  cloneNode() {
-    return this.ownerDocument.$$createComment({
-      nodeId: `b-${tool.getId()}`,
-    });
-  }
 }
 
 export default Comment;

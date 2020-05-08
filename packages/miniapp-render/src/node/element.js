@@ -6,7 +6,6 @@ import Attribute from './attribute';
 import Pool from '../util/pool';
 import cache from '../util/cache';
 import tool from '../util/tool';
-import parser from '../tree/parser';
 
 const pool = new Pool();
 
@@ -36,7 +35,6 @@ class Element extends Node {
     this.$_tagName = options.tagName || '';
     this.$_children = [];
     this.$_nodeType = options.nodeType || Node.ELEMENT_NODE;
-    this.$_unary = !!parser.voidMap[this.$_tagName.toLowerCase()];
     this.$_notTriggerUpdate = false;
     this.$_dataset = null;
     this.$_classList = null;
@@ -61,7 +59,6 @@ class Element extends Node {
     this.$_tagName = '';
     this.$_children.length = 0;
     this.$_nodeType = Node.ELEMENT_NODE;
-    this.$_unary = null;
     this.$_notTriggerUpdate = false;
     this.$_dataset = null;
     this.$_classList = null;
@@ -189,92 +186,6 @@ class Element extends Node {
     }
   }
 
-  // Traverse the dom tree to generate the HTML
-  $_generateHtml(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      // Text node
-      return node.textContent;
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      // Element
-      const tagName = node.tagName.toLowerCase();
-      let html = `<${tagName}`;
-
-      // Attribute
-      if (node.id) html += ` id="${node.id}"`;
-      if (node.className) html += ` class="${node.className}"`;
-
-      const styleText = node.style.cssText;
-      if (styleText) html += ` style="${styleText}"`;
-
-      const src = node.src;
-      if (src) html += ` src=${src}`;
-
-      const animation = node.animation;
-      if (node.animation) html += `animation=${animation}`;
-
-      const dataset = node.dataset;
-      Object.keys(dataset).forEach(name => {
-        html += ` data-${tool.toDash(name)}="${dataset[name]}"`;
-      });
-
-      html = this.$$dealWithAttrsForGenerateHtml(html, node);
-
-      if (node.$$isUnary) {
-        // Empty tag
-        return `${html} />`;
-      } else {
-        const childrenHtml = node.childNodes.map(child => this.$_generateHtml(child)).join('');
-        return `${html}>${childrenHtml}</${tagName}>`;
-      }
-    }
-  }
-
-  // Traverse the ast to generate the dom tree
-  $_generateDomTree(node) {
-    const {
-      type,
-      tagName = '',
-      attrs = [],
-      children = [],
-      content = '',
-    } = node;
-
-    // generated at runtime, using the b- prefix
-    const nodeId = `b-${tool.getId()}`;
-
-    if (type === 'element') {
-      // Element
-      const attrsMap = {};
-
-      // The property list is converted to a map
-      for (const attr of attrs) {
-        const name = attr.name;
-        let value = attr.value;
-
-        if (name === 'style') value = value && value.replace('"', '\'') || '';
-
-        attrsMap[name] = value;
-      }
-
-      const element = this.ownerDocument.$$createElement({
-        tagName, attrs: attrsMap, nodeId
-      });
-
-      for (let child of children) {
-        child = this.$_generateDomTree(child);
-
-        if (child) element.appendChild(child);
-      }
-
-      return element;
-    } else if (type === 'text') {
-      // Text node
-      return this.ownerDocument.$$createTextNode({
-        content: tool.decodeContent(content), nodeId
-      });
-    }
-  }
-
   // Dom info
   get $$domInfo() {
     return {
@@ -289,26 +200,6 @@ class Element extends Node {
     };
   }
 
-  // Check Empty tag
-  get $$isUnary() {
-    return this.$_unary;
-  }
-
-  // The $_generateHtml interface is called to handle additional attributes
-  $$dealWithAttrsForGenerateHtml(html) {
-    // The concrete implementation logic is implemented by subclasses
-    return html;
-  }
-
-  // The setter for outerHTML is called to handle the extra properties
-  $$dealWithAttrsForOuterHTML() {
-  }
-
-  // The cloneNode interface is called to process additional properties
-  $$dealWithAttrsForCloneNode() {
-    return {};
-  }
-
   // Gets the context object of the corresponding widget component
   $$getContext() {
     // Clears out setData
@@ -317,13 +208,7 @@ class Element extends Node {
     return new Promise((resolve, reject) => {
       if (!window) reject();
 
-      if (this.tagName === 'CANVAS') {
-        // TODO, for the sake of compatibility with a bug in the underlying library, for the time being
-        CONTAINER.createSelectorQuery().in(this._builtInComponent).select(`.node-${this.$_nodeId}`).context(res => res && res.context ? resolve(res.context) : reject())
-          .exec();
-      } else {
-        window.$$createSelectorQuery().select(`.miniprogram-root >>> .node-${this.$_nodeId}`).context(res => res && res.context ? resolve(res.context) : reject()).exec();
-      }
+      window.$$createSelectorQuery().select(`.miniprogram-root >>> .node-${this.$_nodeId}`).context(res => res && res.context ? resolve(res.context) : reject()).exec();
     });
   }
 
@@ -335,12 +220,7 @@ class Element extends Node {
     return new Promise((resolve, reject) => {
       if (!window) reject();
 
-      if (this.tagName === 'CANVAS') {
-        // TODO, for the sake of compatibility with a bug in the underlying library, for the time being
-        resolve(CONTAINER.createSelectorQuery().in(this._builtInComponent).select(`.node-${this.$_nodeId}`));
-      } else {
-        resolve(window.$$createSelectorQuery().select(`.miniprogram-root >>> .node-${this.$_nodeId}`));
-      }
+      resolve(window.$$createSelectorQuery().select(`.miniprogram-root >>> .node-${this.$_nodeId}`));
     });
   }
 
@@ -416,124 +296,6 @@ class Element extends Node {
     return this.$_children[this.$_children.length - 1];
   }
 
-  get innerHTML() {
-    return this.$_children.map(child => this.$_generateHtml(child)).join('');
-  }
-
-  set innerHTML(html) {
-    if (typeof html !== 'string') return;
-
-    const fragment = this.ownerDocument.$$createElement({
-      tagName: 'documentfragment',
-      nodeId: `b-${tool.getId()}`,
-      nodeType: Node.DOCUMENT_FRAGMENT_NODE,
-    });
-
-    // parse to ast
-    let ast = null;
-    try {
-      ast = parser.parse(html);
-    } catch (err) {
-      console.error(err);
-    }
-
-    if (!ast) return;
-
-    // Generate dom tree
-    ast.forEach(item => {
-      const node = this.$_generateDomTree(item);
-      if (node) fragment.appendChild(node);
-    });
-
-    // Delete all child nodes
-    this.$_children.forEach(node => {
-      node.$$updateParent(null);
-
-      // Update the mapping table
-      this.$_updateChildrenExtra(node, true);
-    });
-    this.$_children.length = 0;
-
-    // Appends the new child node
-    if (this.$_tagName === 'table') {
-      // The table node needs to determine whether a tbody exists
-      let hasTbody = false;
-
-      for (const child of fragment.childNodes) {
-        if (child.tagName === 'TBODY') {
-          hasTbody = true;
-          break;
-        }
-      }
-
-      if (!hasTbody) {
-        const tbody = this.ownerDocument.$$createElement({
-          tagName: 'tbody',
-          attrs: {},
-          nodeType: Node.ELEMENT_NODE,
-          nodeId: `b-${tool.getId()}`,
-        });
-
-        tbody.appendChild(fragment);
-        this.appendChild(tbody);
-      }
-    } else {
-      this.appendChild(fragment);
-    }
-  }
-
-  get outerHTML() {
-    return this.$_generateHtml(this);
-  }
-
-  set outerHTML(html) {
-    if (typeof html !== 'string') return;
-
-    // Resolve to ast, taking only the first as the current node
-    let ast = null;
-    try {
-      ast = parser.parse(html)[0];
-    } catch (err) {
-      console.error(err);
-    }
-
-    if (ast) {
-      // Generate dom tree
-      const node = this.$_generateDomTree(ast);
-
-      // Delete all child nodes
-      this.$_children.forEach(node => {
-        node.$$updateParent(null);
-
-        // Update the mapping table
-        this.$_updateChildrenExtra(node, true);
-      });
-      this.$_children.length = 0;
-
-      // When first render doesn't trigger update
-      this.$_notTriggerUpdate = true;
-
-      // Append new child nodes
-      const children = [].concat(node.childNodes);
-      for (const child of children) {
-        this.appendChild(child);
-      }
-
-      this.$_tagName = node.tagName.toLowerCase();
-      this.id = node.id || '';
-      this.className = node.className || '';
-      this.style.cssText = node.style.cssText || '';
-      this.src = node.src || '';
-      this.$_dataset = Object.assign({}, node.dataset);
-
-      this.$$dealWithAttrsForOuterHTML(node);
-
-      // Trigger update
-      this.$_notTriggerUpdate = false;
-      this.$_triggerParentUpdate();
-    }
-  }
-
   get innerText() {
     // WARN: this is handled in accordance with the textContent, not to determine whether it will be rendered or not
     return this.textContent;
@@ -594,37 +356,6 @@ class Element extends Node {
   set src(value) {
     value = '' + value;
     this.$_attrs.set('src', value);
-  }
-
-  cloneNode(deep) {
-    const dataset = {};
-    Object.keys(this.$_dataset).forEach(name => {
-      dataset[`data-${tool.toDash(name)}`] = this.$_dataset[name];
-    });
-
-    const newNode = this.ownerDocument.$$createElement({
-      tagName: this.$_tagName,
-      attrs: {
-        id: this.id,
-        class: this.className,
-        style: this.style.cssText,
-        src: this.src,
-
-        ...dataset,
-        ...this.$$dealWithAttrsForCloneNode(),
-      },
-      nodeType: this.$_nodeType,
-      nodeId: `b-${tool.getId()}`,
-    });
-
-    if (deep) {
-      // Deep clone
-      for (const child of this.$_children) {
-        newNode.appendChild(child.cloneNode(deep));
-      }
-    }
-
-    return newNode;
   }
 
   appendChild(node) {
@@ -779,30 +510,6 @@ class Element extends Node {
     return this.$_children.length > 0;
   }
 
-  getElementsByTagName(tagName) {
-    if (typeof tagName !== 'string') return [];
-
-    return this.$_tree.getByTagName(tagName, this);
-  }
-
-  getElementsByClassName(className) {
-    if (typeof className !== 'string') return [];
-
-    return this.$_tree.getByClassName(className, this);
-  }
-
-  querySelector(selector) {
-    if (typeof selector !== 'string') return;
-
-    return this.$_tree.query(selector, this)[0] || null;
-  }
-
-  querySelectorAll(selector) {
-    if (typeof selector !== 'string') return [];
-
-    return this.$_tree.query(selector, this);
-  }
-
   setAttribute(name, value) {
     if (typeof name !== 'string') return;
 
@@ -852,12 +559,6 @@ class Element extends Node {
     }
 
     return false;
-  }
-
-  getBoundingClientRect() {
-    // Do not make any implementation, only for compatible use
-    console.warn('getBoundingClientRect is not supported, please use npm package universal-element to get DOM info in miniapp');
-    return {};
   }
 }
 

@@ -6,7 +6,7 @@ import checkComponentAttr from './vdom/checkComponentAttr';
 import dealWithLeafAndSimple from './vdom/dealWithLeafAndSimple';
 import init from './init';
 import { componentNameMap, handlesMap } from './component';
-import { NOT_SUPPORT, IN_COVER } from './constants';
+import { IN_COVER } from './constants';
 import getInitialProps from './adapter/getInitialProps';
 import getId from './adapter/getId';
 import getLifeCycle from './adapter/getLifeCycle';
@@ -84,11 +84,6 @@ const config = {
           newData.customComponentName = domNode.behavior;
         if (data.nodeId !== this.nodeId) data.nodeId = this.nodeId;
         if (data.pageId !== this.pageId) data.pageId = this.pageId;
-      } else if (NOT_SUPPORT.indexOf(tagName) >= 0) {
-        // Not support
-        newData.builtinComponentName = 'not-support';
-        if (data.content !== domNode.content)
-          newData.content = domNode.textContent;
       } else {
         // Replaced html tag
         const builtinComponentName = componentNameMap[tagName.toLowerCase()];
@@ -195,11 +190,6 @@ const lifeCycles = getLifeCycle({
     );
 
     if (Object.keys(data).length) this.setData(data);
-    if (isMiniApp) {
-      if (this.domNode.tagName === 'CANVAS') {
-        this.domNode.$$trigger('canvasReady');
-      }
-    }
   },
   ready() {
     this.__ready = true;

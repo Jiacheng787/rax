@@ -1,5 +1,4 @@
 import { componentNameMap } from './component';
-import { NOT_SUPPORT } from './constants';
 import checkComponentAttr from './vdom/checkComponentAttr';
 
 export default function(instance, data) {
@@ -17,10 +16,6 @@ export default function(instance, data) {
     data.customComponentName = domNode.behavior;
     data.nodeId = instance.nodeId;
     data.pageId = instance.pageId;
-  } else if (NOT_SUPPORT.indexOf(tagName) >= 0) {
-    // Not supported component
-    data.builtinComponentName = 'not-support';
-    data.content = domNode.textContent;
   } else {
     // Could be replaced html tag
     const builtinComponentName = componentNameMap[tagName.toLowerCase()];

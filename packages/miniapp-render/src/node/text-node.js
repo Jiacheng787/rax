@@ -92,13 +92,6 @@ class TextNode extends Node {
   set data(value) {
     this.textContent = value;
   }
-
-  cloneNode() {
-    return this.ownerDocument.$$createTextNode({
-      content: this.$_content,
-      nodeId: `b-${tool.getId()}`,
-    });
-  }
 }
 
 export default TextNode;

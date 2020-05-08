@@ -79,14 +79,6 @@ function decodeContent(content) {
     .replace(/&amp;/g, '&');
 }
 
-/**
- * Check tag wheather supported
- */
-const NOT_SUPPORT_TAG_NAME_LIST = ['IFRAME', 'A'];
-function isTagNameSupport(tagName) {
-  return NOT_SUPPORT_TAG_NAME_LIST.indexOf(tagName) === -1;
-}
-
 export default {
   toDash,
   toCamel,
@@ -96,5 +88,4 @@ export default {
   throttle,
   flushThrottleCache,
   decodeContent,
-  isTagNameSupport,
 };

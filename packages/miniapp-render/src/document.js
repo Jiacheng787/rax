@@ -6,20 +6,10 @@ import TextNode from './node/text-node';
 import Comment from './node/comment';
 import tool from './util/tool';
 import cache from './util/cache';
-import Image from './node/element/image';
-import Input from './node/element/input';
-import Textarea from './node/element/textarea';
-import Video from './node/element/video';
-import Canvas from './node/element/canvas';
 import BuiltInComponent from './node/element/builtin-component';
 import CustomComponent from './node/element/custom-component';
 
 const CONSTRUCTOR_MAP = {
-  IMG: Image,
-  INPUT: Input,
-  TEXTAREA: Textarea,
-  VIDEO: Video,
-  CANVAS: Canvas,
   'BUILTIN-COMPONENT': BuiltInComponent,
 };
 const BUILTIN_COMPONENT_LIST = [
@@ -52,18 +42,6 @@ class Document extends EventTarget {
 
     this.__pageId = pageId;
 
-    // Used to encapsulate special tag and corresponding constructors
-    const that = this;
-    this.$_imageConstructor = function HTMLImageElement(width, height) {
-      return Image.$$create({
-        tagName: 'img',
-        nodeId: `b-${tool.getId()}`,
-        attrs: {},
-        width,
-        height,
-      }, that.$_tree);
-    };
-
     this.__pageId = pageId;
     this.$_tree = new Tree(pageId, {
       type: 'element',
@@ -92,12 +70,6 @@ class Document extends EventTarget {
     // update body's parentNode
     this.$_tree.root.$$updateParent(this.$_node);
   }
-
-  // Image constructor
-  get $$imageConstructor() {
-    return this.$_imageConstructor;
-  }
-
   // Event trigger
   $$trigger(eventName, options) {
     this.documentElement.$$trigger(eventName, options);
@@ -124,8 +96,6 @@ class Document extends EventTarget {
       options.attrs = options.attrs || {};
       options.componentName = originTagName;
       return CustomComponent.$$create(options, tree);
-    } else if (!tool.isTagNameSupport(tagName)) {
-      throw new Error(`${tagName} is not supported.`);
     } else {
       return Element.$$create(options, tree);
     }
@@ -182,18 +152,6 @@ class Document extends EventTarget {
     if (typeof className !== 'string') return [];
 
     return this.$_tree.getByClassName(className);
-  }
-
-  querySelector(selector) {
-    if (typeof selector !== 'string') return;
-
-    return this.$_tree.query(selector)[0] || null;
-  }
-
-  querySelectorAll(selector) {
-    if (typeof selector !== 'string') return [];
-
-    return this.$_tree.query(selector);
   }
 
   createElement(tagName) {
